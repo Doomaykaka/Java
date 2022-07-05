@@ -1,0 +1,17 @@
+apply plugin: 'application' //подключаем работу с приложениями
+apply plugin: 'java' //подключаем работу с java
+apply plugin: 'eclipse' //подключаем работу с eclipse
+
+//упаковка проекта в jar
+jar {
+	baseName = 'medianotes'
+	version =  '0.1.0'
+    manifest {
+       attributes 'Main-Class': 'medianotes.Main'
+    }
+}
+
+//указание точки входа для сборки проекта
+application{
+	mainClass='medianotes.Main'
+}
