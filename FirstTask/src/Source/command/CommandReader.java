@@ -34,6 +34,10 @@ public class CommandReader {
 				if(code == 0) { //проверяем событие выхода из приложения
 					break;
 				}
+				
+				if(code == -1) { //проверяем событие передачи неправильной команды
+					System.out.println("Bad command");
+				}
 			}
 		}
 		return 0;//завершаем приложение
@@ -91,21 +95,21 @@ public class CommandReader {
 		
 		if(command.contains("help")) { //выводим справку команд и возвращаем статус
 			System.out.println("Help :"); //выводим справку
-			System.out.println("create patient");
-			System.out.println("edit patient");
+			System.out.println("create patient FULLNAME");
+			System.out.println("edit patient ID FULLNAME");
 			System.out.println("patients");
-			System.out.println("remove patient");
-			System.out.println("create doctor");
-			System.out.println("edit doctor");
+			System.out.println("remove patient ID");
+			System.out.println("create doctor FULLNAME");
+			System.out.println("edit doctor ID FULLNAME");
 			System.out.println("doctors");
-			System.out.println("remove doctor");
-			System.out.println("create appointment");
-			System.out.println("edit appointment");
+			System.out.println("remove doctor ID");
+			System.out.println("create appointment PATIENTID REGDATE RECDATE RECSTATUS DOCTORID");
+			System.out.println("edit appointment ID PATIENTID REGDATE RECDATE RECSTATUS DOCTORID");
 			System.out.println("appointments");
-			System.out.println("remove appointment");
+			System.out.println("remove appointment ID");
 			System.out.println("help");
 			System.out.println("exit");
-			return 1;
+			return -2; //возвращаем статус бездействия
 		}
 		
 		if(command.contains("exit")) { //вызываем метод выхода из приложения и возвращаем статус
