@@ -7,8 +7,13 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import main.java.medianotes.model.Folder;
 import main.java.medianotes.repository.FolderRepository;
@@ -20,6 +25,14 @@ public class FolderRepositoryImpl implements FolderRepository,Serializable{
 	private static final long serialVersionUID = 1L;
 	private static Set<Folder> FOLDERS = new HashSet<>(); //множество , т.к. храним только уникальные заметки (паттерн singleton , т.к. за весь процесс работы приложения создаётся только один объект класса)
 	private String path; //строка для хранения пути
+	
+	//интерфейсы
+	
+	//функциональный интерфейс
+	interface SortInt{
+	    // абстрактный метод
+		Set<Folder> getSorted();
+	}
 	
 	//методы класса
 	
@@ -49,6 +62,10 @@ public class FolderRepositoryImpl implements FolderRepository,Serializable{
 	//создание папки
 	public void CreateFolder(String name,Folder parentFolder) {
 		FOLDERS.add(new Folder(name,parentFolder));
+		//сортировка списка папок
+		SortInt si; //создаём объект функцианального интерфейса
+		si=()->FOLDERS.stream().sorted(Comparator.comparing(folder->folder.getName())).collect(Collectors.toSet()); //сортируем список папок при помощи лямбда-выражениия
+		FOLDERS=si.getSorted();
 		writeFoldersData();
 	}
 	//удаление папки
@@ -121,3 +138,4 @@ public class FolderRepositoryImpl implements FolderRepository,Serializable{
 		}
 	}
 }
+

@@ -4,7 +4,7 @@ import java.io.Serializable;
 import java.util.Objects;
 
 //класс папки
-public class Folder implements Serializable{
+public class Folder implements Serializable,Comparable<Folder>{
 	//поля класса
 	
 	private static final long serialVersionUID = 1L;
@@ -38,5 +38,9 @@ public class Folder implements Serializable{
 	@Override
 	public int hashCode() {
 		return Objects.hash(name);
+	}
+	//компаратор объектов класса
+	public int compareTo(Folder f) {
+	       return this.name.compareTo(f.getName());
 	}
 }

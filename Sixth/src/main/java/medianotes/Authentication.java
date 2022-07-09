@@ -26,7 +26,7 @@ public class Authentication {
 			
 			System.out.println("Password : "); //выводим надпись и считываем пароль пользователя
 			var password = s.nextLine();
-						
+			
 			if(findAccount(login+" "+password)) { //проверяем данные аутентификации введённые пользователем
 				System.out.println("Hello "+login); //выводим приветствующую надпись	
 				

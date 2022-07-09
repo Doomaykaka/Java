@@ -7,10 +7,16 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import main.java.medianotes.model.Folder;
 import main.java.medianotes.model.Note;
 import main.java.medianotes.repository.NoteRepository;
+import main.java.medianotes.repository.impl.FolderRepositoryImpl.SortInt;
 
 //класс хранилища записок
 public class NoteRepositoryImpl implements NoteRepository,Serializable{
@@ -18,6 +24,14 @@ public class NoteRepositoryImpl implements NoteRepository,Serializable{
 	
 	private static final long serialVersionUID = 1L;
 	private static List<Note> NOTES = new LinkedList<>(); //список со всеми записками
+	
+	//интерфейсы
+	
+	//функциональный интерфейс
+	interface SortInt{
+		// абстрактный метод
+		List<Note> getSorted();
+	}
 	
 	//методы класса
 	
@@ -40,7 +54,10 @@ public class NoteRepositoryImpl implements NoteRepository,Serializable{
 	@Override
 	public Note save(Note note) {
 		NOTES.add(note);
-		
+		//сортировка списка записок
+		SortInt si; //создаём объект функцианального интерфейса
+		si=()->NOTES.stream().sorted(Comparator.comparing(notes->notes.getName())).collect(Collectors.toList()); //сортируем список записок при помощи лямбда-выражения
+		NOTES=si.getSorted();
 		writeNotesData();
 		
 		return note;

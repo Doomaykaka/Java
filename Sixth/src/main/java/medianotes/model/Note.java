@@ -3,7 +3,7 @@ import java.io.Serializable;
 import java.time.Instant;
 
 //класс записки
-public class Note implements Serializable{
+public class Note implements Serializable,Comparable<Note>{
 	//поля класса
 	
 	private static final long serialVersionUID = 1L;
@@ -62,6 +62,8 @@ public class Note implements Serializable{
 	public void setParentFolder(Folder newParentFolder) {
 		parentFolder=newParentFolder;
 	}
-		
-	
+	//компаратор объектов класса
+	public int compareTo(Note n) {
+		return this.name.compareTo(n.getName());
+	}
 }
