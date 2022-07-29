@@ -18,7 +18,7 @@ public class Note implements Serializable,Comparable<Note>{
 	//методы класса 
 	
 	//конструктор класса (выполняется при создании объекта)
-	public Note(String name_in, String text_in, String author_in, Folder parentFolder_in, int user_id_in, String noteStatus_in){
+	public Note(String name_in, String text_in, String author_in, Folder parentFolder_in, int user_id_in, String noteStatus_in,Instant creationDate_in ){
 		name = name_in;
 		text = text_in;
 		
@@ -26,7 +26,7 @@ public class Note implements Serializable,Comparable<Note>{
 		
 		author = author_in;
 		
-		creationDate = Instant.now();
+		creationDate = creationDate_in;
 		
 		author_id=user_id_in;
 		
@@ -78,6 +78,12 @@ public class Note implements Serializable,Comparable<Note>{
 	}
 	//компаратор объектов класса
 	public int compareTo(Note n) {
-		return this.name.compareTo(n.getName());
+		if(this.getStatus()==null) {
+			this.setStatus("notCompleted");
+		}
+		if(n.getStatus()==null) {
+			n.setStatus("notCompleted");
+		}
+		return this.getStatus().compareTo(n.getStatus());
 	}
 }

@@ -81,7 +81,7 @@ public class Authentication {
 			}
 
 		}catch(Exception e) {
-			System.out.println("Some problems");
+			e.printStackTrace();
 		}
 
 	}
@@ -108,7 +108,7 @@ public class Authentication {
 			db = DriverManager.getConnection(url.toString());
 
 		} catch (SQLException | InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-			System.out.println("Some problems");
+			e.printStackTrace();
 		}
 
 		return db;
@@ -138,7 +138,7 @@ public class Authentication {
 				}
 				vLOGINandPASSWORDandID = allRows.toArray(new String[0]);
 			} catch (Exception e) {
-				System.out.println("Some problems");
+				e.printStackTrace();
 			}
 
 		}
@@ -182,9 +182,9 @@ public class Authentication {
 					athentificate();
 				}
 			}catch (SQLException e) {
-				System.out.println("Some problems");
+				e.printStackTrace();
 			}catch(Exception a) {
-				System.out.println("Some problems");
+				a.printStackTrace();
 			}
 		}
 	}

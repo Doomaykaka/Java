@@ -1,11 +1,5 @@
 package main.java.medianotes.repository.impl;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.Driver;
@@ -14,17 +8,16 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import main.java.medianotes.model.Folder;
+import main.java.medianotes.model.Note;
 import main.java.medianotes.repository.FolderRepository;
+import main.java.medianotes.repository.NoteRepository;
 
 //класс хранилища папок
 public class FolderRepositoryImpl implements FolderRepository, Serializable {
@@ -35,6 +28,7 @@ public class FolderRepositoryImpl implements FolderRepository, Serializable {
 	private static Connection db = null; // объект подключения
 	private static boolean connection_status = false; // логическая переменная хранящая статус подключения к бд
 	private String currentDir; // строка для текущей папки
+	Set <String> mp;
 	
 	// интерфейсы
 
@@ -69,7 +63,7 @@ public class FolderRepositoryImpl implements FolderRepository, Serializable {
 				connection_status = true;
 			}
 		} catch (SQLException | InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-			System.out.println("Some problems");
+			e.printStackTrace();
 		}
 	}
 
@@ -81,35 +75,38 @@ public class FolderRepositoryImpl implements FolderRepository, Serializable {
 	// геттер репозитория (получение репозитория)
 	public Set<Folder> getFolders(int user_id_in) {
 		final Set<Folder> folders = new HashSet<>(); // множество
+		final Set<Folder> foldersN = new HashSet<>(); // множество
+		mp=new HashSet<>(); // множество
+		Statement st = null;
+		int count=0;
 		// запрашиваем данные о репозиториях
 		if (connection_status) {
 			try {
-				Statement st = db.createStatement();
-				ResultSet rs = st.executeQuery("SELECT * FROM \"Folders\" WHERE author_id="+Integer.toString(user_id_in));
-				ResultSet vl = rs;
-				List<String> allRows = new ArrayList<String>();
+				st = db.createStatement();
+				ResultSet vl = st.executeQuery("SELECT * FROM \"Folders\" WHERE author_id="+Integer.toString(user_id_in));
 				while (vl.next()) {
 					final String pf = vl.getString("parent_folder");
 					String nm;
-					if(pf==null) {
-						nm = vl.getString("name");
-						folders.add(new Folder(nm, null, user_id_in));
-					}else{						
-						nm = vl.getString("name");
-						final String parfol = pf;
-						for(Folder fol:folders) {
-							if(fol.getName().equals(pf)) {
-								folders.add(new Folder(nm, fol, user_id_in));
-							}
-						}
+					nm = vl.getString("name");
+					if((pf==null)&&(mp.contains(nm)==false)) {	
+						foldersN.add(new Folder(nm, null, user_id_in));
+						mp.add(nm);
 					}
 				}
+				vl.close();
+				
+				ResultSet rs2 = st.executeQuery("SELECT count(*) FROM \"Folders\" WHERE author_id="+Integer.toString(user_id_in));
+				while (rs2.next()) {
+					count = rs2.getInt(1);
+				}
 			} catch (Exception e) {
-				System.out.println("Some problems");
+				e.printStackTrace();
 			}
 
 		}
-
+		
+		folders.addAll(addFoldersRec(st,foldersN,user_id_in,count));
+		
 		// сортировка списка папок
 		SortInt si; // создаём объект функцианального интерфейса
 		si = () -> folders.stream().sorted(Comparator.comparing(folder -> folder.getName()))
@@ -117,51 +114,111 @@ public class FolderRepositoryImpl implements FolderRepository, Serializable {
 
 		return si.getSorted();
 	}
+	
+	//  метод рекурсивного добавления папок 
+	public Set<Folder> addFoldersRec(Statement st,Set<Folder> foldersPrevios,int user_id_in,int size) {
+		Set<Folder> folders = new HashSet<>(); // множество	
+		
+		try {
+			st = db.createStatement();
+			ResultSet rs = st.executeQuery("SELECT * FROM \"Folders\" WHERE author_id="+Integer.toString(user_id_in));
+			while (rs.next()) {
+				final String pf = rs.getString("parent_folder");
+				String nm;
+				if(pf!=null) {
+					nm = rs.getString("name");
+					for(Folder fol:foldersPrevios) {
+						if((fol.getName().equals(pf))&&(mp.contains(nm)==false)) {
+							folders.add(new Folder(nm, fol, user_id_in));
+							mp.add(nm);
+						}	
+					}
+				}
+			}
+			rs.close();
+			
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		Set<Folder> foldersThis = folders;
+		
+		folders.addAll(foldersPrevios);
+
+		if(folders.toArray().length<size) {
+			foldersThis=addFoldersRec(st,foldersThis,user_id_in,size);
+		}else {
+			foldersThis=folders;
+		}
+		
+		return foldersThis;
+	}
 
 	// создание папки
 	public void createFolder(String name, Folder parentFolder, int user_id_in) {
 		// добавляем данные о репозиториях
 		if (connection_status) {
 			try {
+				int count = 0;
 				name = name.toUpperCase();
 				Statement st1 = db.createStatement();
-				ResultSet rs1 = st1.executeQuery("SELECT count(*) FROM \"Folders\" ");
-				if (rs1.next()) {
-					int count = rs1.getInt(1);
-					Statement st = db.createStatement();
-					if(parentFolder==null){
-						ResultSet rs = st.executeQuery("INSERT INTO \"Folders\" (id,name,parent_folder,author_id)" + "VALUES ("
-								+ Integer.toString(count) + ", '" + name + "', null,"+Integer.toString(user_id_in)+")");
+				ResultSet rs1;
+				boolean getId = true;
+				while(getId) {
+					rs1 = st1.executeQuery("SELECT * FROM \"Folders\" WHERE id="+count);
+					if (!rs1.next()){
+						getId=false;
 					}else {
-						ResultSet rs = st.executeQuery("INSERT INTO \"Folders\" (id,name,parent_folder,author_id)" + "VALUES ("
-								+ Integer.toString(count) + ", '" + name + "', '" + parentFolder.getName() + "',"+Integer.toString(user_id_in)+")");
+						count=count+1;
 					}
 				}
+				Statement st = db.createStatement();
+				if(parentFolder==null){
+					st.executeUpdate("INSERT INTO \"Folders\" (id,name,parent_folder,author_id)" + "VALUES ("
+							+ Integer.toString(count) + ", '" + name + "', null,"+Integer.toString(user_id_in)+")");
+				}else {
+					st.executeUpdate("INSERT INTO \"Folders\" (id,name,parent_folder,author_id)" + "VALUES ("
+							+ Integer.toString(count) + ", '" + name + "', '" + parentFolder.getName() + "',"+Integer.toString(user_id_in)+")");
+				}
 			} catch (SQLException e) {
-				System.out.println("Some problems");
+				e.printStackTrace();
 			} catch (Exception a) {
-				System.out.println("Some problems");
+				a.printStackTrace();
 			}
 
 		}
 	}
 
 	// удаление папки
-	public void removeFolder(String name, String parentFolderName, int user_id_in) {
+	public void removeFolder(String name, String parentFolderName, int user_id_in, NoteRepository noteRepository) {
+		Set<Folder> folders = getFolders(user_id_in);
 		// удаляем данные о репозиториях
 		if (connection_status) {
 			try {
 				Statement st = db.createStatement();
+				for(Note n : noteRepository.getAllNotes(user_id_in)) {
+					if(n.getParentFolder().getName().equals(name)) {
+						noteRepository.remove(n.getName(), user_id_in);
+					}
+				}
+				for(Folder f : folders) {
+					if(f.getParentFolder()!=null) {
+						if(f.getParentFolder().getName().equals(name)) {
+							removeFolder(f.getName(),f.getParentFolder().getName(),user_id_in,noteRepository);
+						}
+					}
+				}
 				if(parentFolderName!=null) {
-					ResultSet rs = st.executeQuery("DELETE FROM \"Folders\" WHERE name='" + name + "' AND parent_folder='"
+					st.executeUpdate("DELETE FROM \"Folders\" WHERE name='" + name + "' AND parent_folder='"
 						+ parentFolderName + "' AND author_id="+Integer.toString(user_id_in));
 				}else {
-					ResultSet rs = st.executeQuery("DELETE FROM \"Folders\" WHERE name='" + name + "' AND parent_folder ISNULL AND author_id="+Integer.toString(user_id_in));
+					st.executeUpdate("DELETE FROM \"Folders\" WHERE name='" + name + "' AND parent_folder ISNULL AND author_id="+Integer.toString(user_id_in));
 				}
 			} catch (SQLException e) {
-				System.out.println("Some problems");
+				e.printStackTrace();
 			} catch (Exception a) {
-				System.out.println("Some problems");
+				a.printStackTrace();
 			}
 
 		}
@@ -202,7 +259,6 @@ public class FolderRepositoryImpl implements FolderRepository, Serializable {
 				}
 				
 				ResultSet vl = rs;
-				List<String> allRows = new ArrayList<String>();
 				String nm;
 				String pf;
 				
@@ -217,9 +273,9 @@ public class FolderRepositoryImpl implements FolderRepository, Serializable {
 					}
 				}
 			} catch (SQLException e) {
-				System.out.println("Some problems"); 
+				e.printStackTrace();
 			} catch (Exception a) {
-				System.out.println("Some problems");
+				a.printStackTrace();
 			}
 
 		}

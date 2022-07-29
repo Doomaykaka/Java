@@ -9,7 +9,7 @@ public interface FolderRepository{
 	//описание методов класса
 	Set<Folder> getFolders(int user_id_in);  //описание метода получения всех папок
 	void createFolder(String name,Folder parentFolder,int user_id_in);  //описание метода создания папки
-	void removeFolder(String name,String parentFolder,int user_id_in);  //описание метода удаления папки
+	void removeFolder(String name,String parentFolder,int user_id_in, NoteRepository noteRepository);  //описание метода удаления папки
 	String getPath(String name,Folder parentFolder,int user_id_in);  //описание метода получения пути папки
 	Folder findFolder(String name,Folder parentFolder,int user_id_in);  //описание метода поиска папки
 	void setCurrent(String currentDir_in,int user_id_in);  //описание метода установки текущей папки

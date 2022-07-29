@@ -1,11 +1,5 @@
 package main.java.medianotes.repository.impl;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.Driver;
@@ -15,17 +9,16 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import main.java.medianotes.model.Folder;
 import main.java.medianotes.model.Note;
 import main.java.medianotes.repository.FolderRepository;
 import main.java.medianotes.repository.NoteRepository;
-import main.java.medianotes.repository.impl.FolderRepositoryImpl.SortInt;
 
 //класс хранилища записок
 public class NoteRepositoryImpl implements NoteRepository, Serializable {
@@ -68,7 +61,7 @@ public class NoteRepositoryImpl implements NoteRepository, Serializable {
 				connection_status = true;
 			}
 		} catch (SQLException | InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-			System.out.println("Some problems");
+			e.printStackTrace();
 		}
 	}
 
@@ -98,19 +91,26 @@ public class NoteRepositoryImpl implements NoteRepository, Serializable {
 				Statement st1 = db.createStatement();
 				System.out.println("name - " + name + " pf - " + par_fol + " text - " + text + " author - " + author
 						+ " cr date - " + cr_date);
-				ResultSet rs1 = st1.executeQuery("SELECT count(*) FROM \"Notes\"");
-				if (rs1.next()) {
-					int count = rs1.getInt(1)+1;
-					System.out.println(Integer.toString(count));
-					Statement st = db.createStatement();
-					ResultSet rs = st.executeQuery("INSERT INTO \"Notes\" (id,parent_folder,name,text,author,creation_date,author_id)"
-									+ "VALUES (" + Integer.toString(count) + ", '" + par_fol + "', '" + name + "', '"
-									+ text + "', '" + author + "', '" + cr_date + "',"+Integer.toString(user_id_in)+")");
+				ResultSet rs1;
+				boolean getId = true;
+				int count = 0;
+				while(getId) {
+					rs1 = st1.executeQuery("SELECT * FROM \"Notes\" WHERE id="+count);
+					if (!rs1.next()){
+						getId=false;
+					}else {
+						count=count+1;
+					}
 				}
+				Statement st = db.createStatement();
+				st.executeUpdate("INSERT INTO \"Notes\" (id,parent_folder,name,text,author,creation_date,author_id)"
+								+ "VALUES (" + Integer.toString(count) + ", '" + par_fol + "', '" + name + "', '"
+								+ text + "', '" + author + "', '" + cr_date + "',"+Integer.toString(user_id_in)+")");
+				
 			} catch (SQLException e) {
-				System.out.println("Some problems");
+				e.printStackTrace();
 			} catch (Exception a) {
-				System.out.println("Some problems"); 
+				a.printStackTrace();
 			}
 		}
 
@@ -139,14 +139,14 @@ public class NoteRepositoryImpl implements NoteRepository, Serializable {
 				String nt_status = note.getStatus();
 				
 				Statement st = db.createStatement();
-				ResultSet rs = st.executeQuery("UPDATE \"Notes\" SET parent_folder='" + par_fol + "',name='"+name+"'"
+				st.executeUpdate("UPDATE \"Notes\" SET parent_folder='" + par_fol + "',name='"+name+"'"
 								+ ",text='" + text + "',author='" + author + "', creation_date='" + cr_date + "',status='"+nt_status+"'"
 								+ " WHERE name='"+name+"'");
 				
 			} catch (SQLException e) {
-				System.out.println("Some problems");
+				e.printStackTrace();
 			} catch (Exception a) {
-				System.out.println("Some problems"); 
+				a.printStackTrace();
 			}
 		}
 
@@ -163,7 +163,6 @@ public class NoteRepositoryImpl implements NoteRepository, Serializable {
 				Statement st = db.createStatement();
 				ResultSet rs = st.executeQuery("SELECT * FROM \"Notes\" WHERE author_id="+user_id_in);
 				ResultSet vl = rs;
-				List<String> allRows = new ArrayList<String>();
 				String nm;
 				String pf;
 				String txt;
@@ -177,19 +176,22 @@ public class NoteRepositoryImpl implements NoteRepository, Serializable {
 					author = vl.getString("author");
 					date = vl.getString("creation_date");
 					status = vl.getString("status");
-					NOTES.add(new Note(nm, txt, author, FindFolder(pf,user_id_in),user_id_in,status));
+					NOTES.add(new Note(nm, txt, author, FindFolder(pf,user_id_in),user_id_in,status,Instant.parse(date)));
 				}
 			} catch (Exception e) {
-				System.out.println("Some problems");
+				e.printStackTrace();
 			}
 
 		}
 
 		// сортировка списка записок
 		SortInt si; // создаём объект функцианального интерфейса
-		si = () -> NOTES.stream().sorted(Comparator.comparing(note -> note.getCreationDate())).collect(Collectors.toList()); // сортируем																											// лямбда-выражениия
-
-		return si.getSorted();
+		si = () -> NOTES.stream().sorted(Comparator.comparing(note -> note.getCreationDate())).collect(Collectors.toList()); // сортируем лямбда-выражением
+		List <Note> sorted = si.getSorted();
+		si = () -> sorted.stream().sorted().collect(Collectors.toList()); // сортируем лямбда-выражением
+		Collections.sort(sorted);
+		Collections.reverse(sorted);
+		return sorted;
 	}
 
 	// метод удаления записки
@@ -199,11 +201,11 @@ public class NoteRepositoryImpl implements NoteRepository, Serializable {
 		if (connection_status) {
 			try {
 				Statement st = db.createStatement();
-				ResultSet rs = st.executeQuery("DELETE FROM \"Notes\" WHERE name='" + name + "' AND author_id="+Integer.toString(user_id_in));
+				st.executeUpdate("DELETE FROM \"Notes\" WHERE name='" + name + "' AND author_id="+Integer.toString(user_id_in));
 			} catch (SQLException e) {
-				System.out.println("Some problems"); 
+				e.printStackTrace();
 			} catch (Exception a) {
-				System.out.println("Some problems");
+				a.printStackTrace();
 			}
 
 		}
@@ -217,7 +219,6 @@ public class NoteRepositoryImpl implements NoteRepository, Serializable {
 				Statement st = db.createStatement();
 				ResultSet rs = st.executeQuery("SELECT * FROM \"Folders\" WHERE author_id="+Integer.toString(user_id_in));
 				ResultSet vl = rs;
-				List<String> allRows = new ArrayList<String>();
 				String nm;
 				String pf;
 				while (vl.next()) {
@@ -231,9 +232,9 @@ public class NoteRepositoryImpl implements NoteRepository, Serializable {
 					}
 				}
 			} catch (SQLException e) {
-				System.out.println("Some problems"); 
+				e.printStackTrace();
 			} catch (Exception a) {
-				System.out.println("Some problems");
+				a.printStackTrace();
 			}
 
 		}

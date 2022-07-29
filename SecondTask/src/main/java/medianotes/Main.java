@@ -6,7 +6,7 @@ public class Main extends Authentication {
 		try {
 			Authentication.athentificate(); //Вызываем метод athentificate
 		}catch(Exception ex) {
-			System.out.println("Some problems");
+			ex.printStackTrace();
 		}finally {
 			System.out.println("Program is closed"); //выводим надпись о завершении работы приложения		
 		}

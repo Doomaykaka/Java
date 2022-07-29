@@ -1,5 +1,6 @@
 package main.java.medianotes.command;
 
+import java.time.Instant;
 import java.util.Scanner;
 
 import main.java.medianotes.model.Folder;
@@ -43,7 +44,7 @@ public class CommandReader {
 				
 			}
 		}catch(Exception e) {
-			System.out.println("Some problems");
+			e.printStackTrace();
 		}
 		return 0;//завершаем приложение
 	}
@@ -150,7 +151,7 @@ public class CommandReader {
 		
 		String noteText = noteTextSb.toString(); //приводим объект динамической строки к обычному типу строки
 		
-		Note newNote = new Note(noteName,noteText,noteAuthor,falderRes,user_id,"notCompleted"); //создаём записку с полученными полями
+		Note newNote = new Note(noteName,noteText,noteAuthor,falderRes,user_id,"notCompleted",Instant.now()); //создаём записку с полученными полями
 		noteRepository.save(newNote,user_id);
 		
 		System.out.println("Note created "); //выводим информирующее сообщение
@@ -228,16 +229,16 @@ public class CommandReader {
 				System.out.println("Folder not deleted"); //выводим информирующее сообщение
 				return 1;
 			}else {
-				folderRepository.removeFolder(folderName,folderRepository.getCurrent(user_id).getName(),user_id);
+				folderRepository.removeFolder(folderName,folderRepository.getCurrent(user_id).getName(),user_id,noteRepository);
 				System.out.println("Folder deleted"); //выводим информирующее сообщение
 			}
 		}else {
 			for(var fal : folderRepository.getFolders(user_id)) {
 				if(fal.getName().equals(folderName)) {
 					if(fal.getParentFolder()!=null) {
-						folderRepository.removeFolder(folderName,fal.getParentFolder().getName(),user_id);
+						folderRepository.removeFolder(folderName,fal.getParentFolder().getName(),user_id,noteRepository);
 					}else {
-						folderRepository.removeFolder(folderName,null,user_id);
+						folderRepository.removeFolder(folderName,null,user_id,noteRepository);
 					}
 					System.out.println("Folder deleted"); //выводим информирующее сообщение
 					break;
